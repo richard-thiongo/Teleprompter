@@ -28,7 +28,11 @@
         "android.permission.READ_MEDIA_VIDEO",
         "android.permission.READ_MEDIA_AUDIO"
       ],
-      "package": "com.richardthiongo.Teleprompt"
+      "package": "com.richardthiongo.Teleprompt",
+      "googleServicesFile": null,
+      "blockedPermissions": [
+        "com.google.android.gms.permission.AR"
+      ]
     },
     "web": {
       "output": "static",
@@ -51,7 +55,8 @@
         {
           "cameraPermission": "Allow Teleprompt to access your camera to take photos and videos.",
           "microphonePermission": "Allow Teleprompt to access your microphone to record audio with videos.",
-          "recordAudioAndroid": true
+          "recordAudioAndroid": true,
+          "enableRecordingSession": false
         }
       ],
       [
