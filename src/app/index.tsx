@@ -5,9 +5,9 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Camera as CameraIcon, FileText, ImageIcon, Minus, Pause, Play, Plus, RefreshCw, SlidersHorizontal, SwitchCamera, Video, XCircle, Zap, ZapOff } from 'lucide-react-native';
+import { useEffect, useRef, useState } from 'react';
 
 type CameraMode = 'picture' | 'video';
-import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -116,7 +116,10 @@ export default function CameraScreen() {
   };
 
   async function handleCapture() {
-    if (!cameraRef.current) return;
+    if (!cameraRef.current) {
+      Alert.alert('Camera Not Ready', 'Please wait for the camera to initialize.', [{ text: 'OK' }]);
+      return;
+    }
 
     if (mode === 'picture') {
       try {
@@ -133,14 +136,15 @@ export default function CameraScreen() {
           });
           loadLastAsset();
         }
-      } catch (e) {
+      } catch (e: any) {
+        const message = e?.message ?? 'Photo capture failed.';
+        Alert.alert('Photo Failed', message, [{ text: 'OK' }]);
         console.error('Photo capture failed:', e);
       }
     } else {
       if (isRecording) {
-        await cameraRef.current.stopRecording();
-        setIsRecording(false);
-        setIsPlaying(false);
+        // stopRecording is a void call — do NOT await
+        cameraRef.current.stopRecording();
       } else {
         setIsRecording(true);
         // Reset scroll and start teleprompter play automatically after brief delay
@@ -153,27 +157,33 @@ export default function CameraScreen() {
         }, 500);
 
         try {
-          await cameraRef.current.startRecording({
+          // startRecording is NOT a Promise — do NOT await it.
+          // Results come via onRecordingFinished / onRecordingError callbacks.
+          cameraRef.current.startRecording({
             flash: flash === 'on' ? 'on' : 'off',
             onRecordingFinished: async (video) => {
-              if (video?.path) {
-                const fromUri = video.path.startsWith('file://') ? video.path : `file://${video.path}`;
-                const fileName = `teleprompt_${Date.now()}.mp4`;
-                const fileUri = `${FileSystem.documentDirectory}${fileName}`;
-                await FileSystem.moveAsync({
-                  from: fromUri,
-                  to: fileUri,
-                });
-                loadLastAsset();
-              }
               setIsRecording(false);
               setIsPlaying(false);
+              if (video?.path) {
+                try {
+                  const fromUri = video.path.startsWith('file://') ? video.path : `file://${video.path}`;
+                  const fileName = `teleprompt_${Date.now()}.mp4`;
+                  const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+                  await FileSystem.moveAsync({
+                    from: fromUri,
+                    to: fileUri,
+                  });
+                  loadLastAsset();
+                } catch (saveErr) {
+                  console.error('Failed to save video:', saveErr);
+                }
+              }
             },
             onRecordingError: (error) => {
-              Alert.alert('Recording Failed', error.message, [{ text: 'OK' }]);
-              console.error('Recording error:', error);
               setIsRecording(false);
               setIsPlaying(false);
+              Alert.alert('Recording Failed', error.message, [{ text: 'OK' }]);
+              console.error('Recording error:', error);
             },
           });
         } catch (e: any) {
