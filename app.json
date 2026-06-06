@@ -8,7 +8,11 @@
     "scheme": "teleprompt",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow Teleprompt to access your camera to take photos and videos.",
+        "NSMicrophoneUsageDescription": "Allow Teleprompt to access your microphone to record audio with videos."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -47,14 +51,6 @@
             "image": "./assets/images/splash-icon.png",
             "imageWidth": 76
           }
-        }
-      ],
-      [
-        "react-native-vision-camera",
-        {
-          "cameraPermissionText": "Allow Teleprompt to access your camera to take photos and videos.",
-          "enableMicrophonePermission": true,
-          "microphonePermissionText": "Allow Teleprompt to access your microphone to record audio with videos."
         }
       ],
       [
