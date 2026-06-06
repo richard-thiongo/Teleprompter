@@ -1,13 +1,6 @@
 import { Colors } from '@/constants/theme';
 import { useScripts } from '@/hooks/use-scripts';
-import { Camera, useCameraDevice, useCameraPermission, useMicrophonePermission } from 'react-native-vision-camera';
-import * as FileSystem from 'expo-file-system/legacy';
-import { Image } from 'expo-image';
-import { router } from 'expo-router';
-import { Camera as CameraIcon, FileText, ImageIcon, Minus, Pause, Play, Plus, RefreshCw, SlidersHorizontal, SwitchCamera, Video, XCircle, Zap, ZapOff } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
-
-type CameraMode = 'picture' | 'video';
 import {
   ActivityIndicator,
   Alert,
@@ -19,6 +12,13 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Camera, useCameraDevice, useCameraPermission, useMicrophonePermission } from 'react-native-vision-camera';
+import * as FileSystem from 'expo-file-system/legacy';
+import { Image } from 'expo-image';
+import { router } from 'expo-router';
+import { Camera as CameraIcon, FileText, ImageIcon, Minus, Pause, Play, Plus, RefreshCw, SlidersHorizontal, SwitchCamera, Video, XCircle, Zap, ZapOff } from 'lucide-react-native';
+
+type CameraMode = 'picture' | 'video';
 
 const theme = Colors.dark;
 
