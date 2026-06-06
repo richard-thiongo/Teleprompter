@@ -158,16 +158,9 @@ export default function CameraScreen() {
             loadLastAsset();
           }
         } catch (e: any) {
-          const message = e?.message ?? '';
-          if (message.includes('Unknown error') || message.includes('Video recording failed')) {
-            Alert.alert(
-              'Video Recording Not Supported',
-              'Video recording requires a development build. Expo Go on Android does not support video recording.\n\nPhoto mode still works!',
-              [{ text: 'OK' }]
-            );
-          } else {
-            console.error('Recording failed:', e);
-          }
+          const message = e?.message ?? 'An unknown error occurred during recording.';
+          Alert.alert('Recording Failed', message, [{ text: 'OK' }]);
+          console.error('Recording failed:', e);
         } finally {
           setIsRecording(false);
           setIsPlaying(false);
