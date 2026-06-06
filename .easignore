@@ -1,0 +1,61 @@
+# EAS Ignore File
+# Files listed here are excluded from EAS cloud builds
+# Syntax mirrors .gitignore
+
+# Dependencies (re-installed by EAS)
+node_modules/
+
+# Expo local cache
+.expo/
+
+# Build outputs
+dist/
+web-build/
+android/
+ios/
+
+# Editor & IDE
+.vscode/
+.claude/
+*.orig.*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.log
+
+# Environment (keep .env, exclude local overrides)
+.env*.local
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Secrets / certs (should never be uploaded)
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+
+# Git
+.git/
+.gitignore
+
+# Docs & misc
+README.md
+LICENSE
+AGENTS.md
+CLAUDE.md
+
+# Scripts not needed for build
+scripts/
+
+# Lock files (EAS uses package.json)
+package-lock.json
+yarn.lock
