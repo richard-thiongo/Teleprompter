@@ -29,7 +29,6 @@
         "android.permission.READ_MEDIA_AUDIO"
       ],
       "package": "com.richardthiongo.Teleprompt",
-      "googleServicesFile": null,
       "blockedPermissions": [
         "com.google.android.gms.permission.AR"
       ]
