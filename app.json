@@ -50,12 +50,11 @@
         }
       ],
       [
-        "expo-camera",
+        "react-native-vision-camera",
         {
-          "cameraPermission": "Allow Teleprompt to access your camera to take photos and videos.",
-          "microphonePermission": "Allow Teleprompt to access your microphone to record audio with videos.",
-          "recordAudioAndroid": true,
-          "enableRecordingSession": false
+          "cameraPermissionText": "Allow Teleprompt to access your camera to take photos and videos.",
+          "enableMicrophonePermission": true,
+          "microphonePermissionText": "Allow Teleprompt to access your microphone to record audio with videos."
         }
       ],
       [

@@ -1,8 +1,12 @@
-import { CameraMode, CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
-import { Camera, FileText, ImageIcon, Minus, Pause, Play, Plus, RefreshCw, SlidersHorizontal, SwitchCamera, Video, XCircle, Zap, ZapOff } from 'lucide-react-native';
+import { Colors } from '@/constants/theme';
+import { useScripts } from '@/hooks/use-scripts';
+import { Camera, useCameraDevice, useCameraPermission, useMicrophonePermission } from 'react-native-vision-camera';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
+import { Camera as CameraIcon, FileText, ImageIcon, Minus, Pause, Play, Plus, RefreshCw, SlidersHorizontal, SwitchCamera, Video, XCircle, Zap, ZapOff } from 'lucide-react-native';
+
+type CameraMode = 'picture' | 'video';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -15,14 +19,12 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors } from '@/constants/theme';
-import { useScripts } from '@/hooks/use-scripts';
 
 const theme = Colors.dark;
 
 export default function CameraScreen() {
-  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
-  const [micPermission, requestMicPermission] = useMicrophonePermissions();
+  const { hasPermission: hasCameraPermission, requestPermission: requestCameraPermission } = useCameraPermission();
+  const { hasPermission: hasMicPermission, requestPermission: requestMicPermission } = useMicrophonePermission();
 
   const { activeScript, settings, updateSettings } = useScripts();
 
@@ -30,22 +32,23 @@ export default function CameraScreen() {
   const [flash, setFlash] = useState<'off' | 'on' | 'auto'>('off');
   const [isRecording, setIsRecording] = useState(false);
   const [mode, setMode] = useState<CameraMode>('video'); // Default to video for teleprompter apps
-  
+
   // Teleprompter state
   const [isPlaying, setIsPlaying] = useState(false);
   const [showGuide, setShowGuide] = useState(true);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [lastAssetUri, setLastAssetUri] = useState<string | null>(null);
 
-  const cameraRef = useRef<CameraView>(null);
+  const cameraRef = useRef<Camera>(null);
+  const device = useCameraDevice(facing);
   const scrollViewRef = useRef<ScrollView>(null);
   const scrollY = useRef(0);
   const [contentHeight, setContentHeight] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
 
-  const allGranted = cameraPermission?.granted && micPermission?.granted;
+  const allGranted = hasCameraPermission && hasMicPermission;
 
-  const loading = !cameraPermission || !micPermission;
+  const loading = allGranted && !device;
 
   // Load last asset thumbnail on mount
   useEffect(() => {
@@ -117,12 +120,15 @@ export default function CameraScreen() {
 
     if (mode === 'picture') {
       try {
-        const photo = await cameraRef.current.takePictureAsync({ quality: 1 });
-        if (photo?.uri) {
+        const photo = await cameraRef.current.takePhoto({
+          flash: flash === 'auto' ? 'auto' : flash === 'on' ? 'on' : 'off',
+        });
+        if (photo?.path) {
+          const fromUri = photo.path.startsWith('file://') ? photo.path : `file://${photo.path}`;
           const fileName = `teleprompt_${Date.now()}.jpg`;
           const fileUri = `${FileSystem.documentDirectory}${fileName}`;
           await FileSystem.moveAsync({
-            from: photo.uri,
+            from: fromUri,
             to: fileUri,
           });
           loadLastAsset();
@@ -132,7 +138,7 @@ export default function CameraScreen() {
       }
     } else {
       if (isRecording) {
-        cameraRef.current.stopRecording();
+        await cameraRef.current.stopRecording();
         setIsRecording(false);
         setIsPlaying(false);
       } else {
@@ -147,21 +153,33 @@ export default function CameraScreen() {
         }, 500);
 
         try {
-          const video = await cameraRef.current.recordAsync();
-          if (video?.uri) {
-            const fileName = `teleprompt_${Date.now()}.mp4`;
-            const fileUri = `${FileSystem.documentDirectory}${fileName}`;
-            await FileSystem.moveAsync({
-              from: video.uri,
-              to: fileUri,
-            });
-            loadLastAsset();
-          }
+          await cameraRef.current.startRecording({
+            flash: flash === 'on' ? 'on' : 'off',
+            onRecordingFinished: async (video) => {
+              if (video?.path) {
+                const fromUri = video.path.startsWith('file://') ? video.path : `file://${video.path}`;
+                const fileName = `teleprompt_${Date.now()}.mp4`;
+                const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+                await FileSystem.moveAsync({
+                  from: fromUri,
+                  to: fileUri,
+                });
+                loadLastAsset();
+              }
+              setIsRecording(false);
+              setIsPlaying(false);
+            },
+            onRecordingError: (error) => {
+              Alert.alert('Recording Failed', error.message, [{ text: 'OK' }]);
+              console.error('Recording error:', error);
+              setIsRecording(false);
+              setIsPlaying(false);
+            },
+          });
         } catch (e: any) {
           const message = e?.message ?? 'An unknown error occurred during recording.';
           Alert.alert('Recording Failed', message, [{ text: 'OK' }]);
           console.error('Recording failed:', e);
-        } finally {
           setIsRecording(false);
           setIsPlaying(false);
         }
@@ -193,7 +211,7 @@ export default function CameraScreen() {
     return (
       <View style={styles.centered}>
         <View style={styles.permissionCard}>
-          <Camera
+          <CameraIcon
             size={56}
             color={theme.primary}
           />
@@ -201,17 +219,14 @@ export default function CameraScreen() {
           <Text style={styles.permissionSubtitle}>
             We need camera and microphone access to record videos.
           </Text>
-          {(!cameraPermission?.canAskAgain || !micPermission?.canAskAgain) ? (
-            <Pressable
-              style={styles.permissionButton}
-              onPress={() => Linking.openSettings()}>
-              <Text style={styles.permissionButtonText}>Open Settings</Text>
-            </Pressable>
-          ) : (
-            <Pressable style={styles.permissionButton} onPress={requestAll}>
-              <Text style={styles.permissionButtonText}>Grant Permissions</Text>
-            </Pressable>
-          )}
+          <Pressable style={styles.permissionButton} onPress={requestAll}>
+            <Text style={styles.permissionButtonText}>Grant Permissions</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.permissionButton, { backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.primary, marginTop: 12 }]}
+            onPress={() => Linking.openSettings()}>
+            <Text style={[styles.permissionButtonText, { color: theme.primary }]}>Open Settings</Text>
+          </Pressable>
         </View>
       </View>
     );
@@ -219,13 +234,17 @@ export default function CameraScreen() {
 
   return (
     <View style={styles.container}>
-      <CameraView
-        ref={cameraRef}
-        style={styles.camera}
-        facing={facing}
-        flash={flash}
-        mode={mode}
-      />
+      {device && (
+        <Camera
+          ref={cameraRef}
+          style={styles.camera}
+          device={device}
+          isActive={true}
+          video={true}
+          audio={true}
+          photo={true}
+        />
+      )}
 
       {/* Prompter Overlay */}
       {mode === 'video' && (
@@ -234,7 +253,7 @@ export default function CameraScreen() {
             <View style={styles.prompterBox}>
               {/* Focus guide overlay */}
               {showGuide && <View style={styles.focusGuide} />}
-              
+
               <ScrollView
                 ref={scrollViewRef}
                 style={styles.prompterScroll}
@@ -321,7 +340,7 @@ export default function CameraScreen() {
           <Pressable
             style={[styles.modeButton, mode === 'picture' && styles.modeButtonActive]}
             onPress={() => { setMode('picture'); setIsRecording(false); setIsPlaying(false); }}>
-            <Camera
+            <CameraIcon
               size={14}
               color={mode === 'picture' ? '#fff' : 'rgba(255,255,255,0.6)'}
             />
